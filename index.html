@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Safari Cósmico - Misión de Exploración Astronómica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Rajdhani', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        h1, h2, h3, .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        /* Fondo espacial con estrellas */
+        body {
+            background-color: #050515;
+            color: #f1f5f9;
+            overflow-x: hidden;
+        }
+        .bg-space {
+            background: radial-gradient(ellipse at bottom, #101432 0%, #050515 100%);
+        }
+        /* Glows Neón */
+        .glow-blue {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.5), inset 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+        .glow-gold {
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.5), inset 0 0 15px rgba(234, 179, 8, 0.2);
+        }
+        .glow-purple {
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.5), inset 0 0 15px rgba(168, 85, 247, 0.2);
+        }
+        .glow-green {
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.5), inset 0 0 15px rgba(34, 197, 94, 0.2);
+        }
+        .text-glow {
+            text-shadow: 0 0 10px currentColor;
+        }
+        /* Animaciones personalizadas */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.03); }
+        }
+        .animate-pulse-glow {
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+        /* Canvas y UI */
+        canvas {
+            touch-action: none;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #38bdf8;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-space min-h-screen text-slate-100 flex flex-col justify-between relative overflow-x-hidden">
+
+    <canvas id="starsCanvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+    <!-- CABECERA DEL JUEGO (HUD) -->
+    <header class="relative z-10 p-4 bg-slate-900/80 backdrop-blur-md border-b border-cyan-500/30 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <span class="text-3xl animate-bounce" id="hudAvatar">🚀</span>
+            <div>
+                <h2 class="text-lg font-bold text-cyan-400 font-orbitron tracking-wider" id="hudPatrol">Patrulla Alfa</h2>
+                <div class="text-xs text-slate-400 flex items-center gap-2">
+                    <span>Estado: <span id="hudStatus" class="text-emerald-400 font-semibold">En Misión</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Indicadores de tiempo y puntuación -->
+        <div class="flex items-center gap-4 sm:gap-8">
+            <div class="text-center">
+                <span class="text-xs uppercase text-slate-400 font-orbitron block">Puntuación</span>
+                <span id="hudScore" class="text-xl sm:text-2xl font-black text-amber-400 text-glow">0000</span>
+            </div>
+            <div class="text-center">
+                <span class="text-xs uppercase text-slate-400 font-orbitron block">Tiempo</span>
+                <span id="hudTimer" class="text-xl sm:text-2xl font-black text-cyan-400 text-glow">00:00</span>
+            </div>
+            <button id="soundToggle" class="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-xl transition">
+                🔊
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTENEDOR PRINCIPAL DE PANTALLAS -->
+    <main class="relative z-10 flex-grow flex items-center justify-center p-4">
+
+        <section id="screenIntro" class="w-full max-w-2xl bg-slate-900/90 border-2 border-cyan-500/50 rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl glow-blue text-center">
+            <div class="mb-6">
+                <span class="inline-block px-4 py-1 bg-cyan-950 text-cyan-400 rounded-full border border-cyan-500/50 text-xs font-semibold uppercase tracking-widest mb-2">Simulación de Aprendizaje Astronómico</span>
+                <h1 class="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-200 to-indigo-400 font-orbitron mb-2">EL SAFARI CÓSMICO</h1>
+                <p class="text-slate-300 text-sm sm:text-base">Recorre las estaciones astronómicas, supera los desafíos físicos de movimiento y completa los informes para obtener tu acreditación oficial.</p>
+            </div>
+
+            <form id="introForm" class="space-y-6 text-left max-w-md mx-auto">
+                <div>
+                    <label class="block text-xs uppercase font-orbitron text-cyan-400 mb-2">Nombre de la Patrulla de Exploradores</label>
+                    <input type="text" id="patrolNameInput" required maxlength="20" placeholder="Ej: Vía Láctea 9" 
+                        class="w-full bg-slate-950 border border-cyan-500/50 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/50 text-lg">
+                </div>
+
+                <div>
+                    <label class="block text-xs uppercase font-orbitron text-cyan-400 mb-2">Elige tu Avatar de Misión</label>
+                    <div class="grid grid-cols-4 gap-3" id="avatarSelector">
+                        <button type="button" data-avatar="👨‍🚀" class="avatar-btn p-3 bg-slate-800 border-2 border-slate-700 hover:border-cyan-400 rounded-xl text-3xl transition flex justify-center items-center active-avatar border-cyan-400 bg-cyan-950/50">👨‍🚀</button>
+                        <button type="button" data-avatar="👽" class="avatar-btn p-3 bg-slate-800 border-2 border-slate-700 hover:border-cyan-400 rounded-xl text-3xl transition flex justify-center items-center">👽</button>
+                        <button type="button" data-avatar="🚀" class="avatar-btn p-3 bg-slate-800 border-2 border-slate-700 hover:border-cyan-400 rounded-xl text-3xl transition flex justify-center items-center">🚀</button>
+                        <button type="button" data-avatar="🤖" class="avatar-btn p-3 bg-slate-800 border-2 border-slate-700 hover:border-cyan-400 rounded-xl text-3xl transition flex justify-center items-center">🤖</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 font-orbitron font-bold text-lg rounded-xl shadow-lg shadow-cyan-500/30 transition transform hover:scale-[1.02] active:scale-95 text-white tracking-wider">
+                    INICIAR EXPEDICIÓN CÓSMICA 🚀
+                </button>
+            </form>
+        </section>
+
+        <section id="screenMap" class="w-full max-w-4xl bg-slate-900/80 border border-slate-700 rounded-2xl p-6 backdrop-blur-xl hidden">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl sm:text-3xl font-black font-orbitron text-cyan-400">MAPA DEL CIRCUITO ASTRONÓMICO</h2>
+                <p class="text-slate-300 text-sm">Selecciona una estación desbloqueada para completar sus 3 fases de investigación.</p>
+            </div>
+
+            <!-- Mapa gráfico de estaciones -->
+            <div class="relative min-h-[350px] bg-slate-950/80 rounded-xl border border-slate-800 p-6 flex flex-col md:flex-row justify-around items-center gap-6 overflow-hidden">
+                <!-- Línea conectora -->
+                <div class="hidden md:block absolute top-1/2 left-20 right-20 h-1 bg-gradient-to-r from-amber-500 via-emerald-500 to-indigo-500 z-0 opacity-40"></div>
+
+                <!-- Estación 1: Sol -->
+                <div id="stationCard-sun" class="station-card relative z-10 flex flex-col items-center bg-slate-900 border-2 border-amber-500/80 rounded-2xl p-5 w-full md:w-64 text-center glow-gold transition transform hover:scale-105">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-600 to-yellow-300 flex items-center justify-center text-4xl mb-3 shadow-lg shadow-amber-500/50 animate-pulse-glow">
+                        ☀️️
+                    </div>
+                    <h3 class="font-orbitron font-bold text-lg text-amber-400">1. ESTACIÓN SOL</h3>
+                    <p class="text-xs text-slate-400 my-2">Rotación, energía térmica y origen del día y la noche.</p>
+                    <span class="station-status text-xs font-semibold px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 mb-3">DISPONIBLE</span>
+                    <button class="start-station-btn w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-sm font-orbitron transition" data-station="sun">
+                        EXPLORAR ➔
+                    </button>
+                </div>
+
+                <!-- Estación 2: Tierra -->
+                <div id="stationCard-earth" class="station-card relative z-10 flex flex-col items-center bg-slate-900 border-2 border-slate-700 rounded-2xl p-5 w-full md:w-64 text-center opacity-60 transition">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600 to-emerald-400 flex items-center justify-center text-4xl mb-3 shadow-lg shadow-blue-500/20">
+                        🌍
+                    </div>
+                    <h3 class="font-orbitron font-bold text-lg text-slate-400">2. ESTACIÓN TIERRA</h3>
+                    <p class="text-xs text-slate-400 my-2">Eje de inclinación, luz/sombra y gravedad $1G$.</p>
+                    <span class="station-status text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 mb-3">BLOQUEADO</span>
+                    <button class="start-station-btn w-full py-2 bg-slate-800 text-slate-500 font-bold rounded-lg text-sm font-orbitron cursor-not-allowed" data-station="earth" disabled>
+                        BLOQUEADO 🔒
+                    </button>
+                </div>
+
+                <!-- Estación 3: Luna -->
+                <div id="stationCard-moon" class="station-card relative z-10 flex flex-col items-center bg-slate-900 border-2 border-slate-700 rounded-2xl p-5 w-full md:w-64 text-center opacity-60 transition">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-slate-500 to-indigo-300 flex items-center justify-center text-4xl mb-3 shadow-lg shadow-purple-500/20">
+                        🌙
+                    </div>
+                    <h3 class="font-orbitron font-bold text-lg text-slate-400">3. ESTACIÓN LUNA</h3>
+                    <p class="text-xs text-slate-400 my-2">Fases lunares, traslación y gravedad reducida ($1/6G$).</p>
+                    <span class="station-status text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 mb-3">BLOQUEADO</span>
+                    <button class="start-station-btn w-full py-2 bg-slate-800 text-slate-500 font-bold rounded-lg text-sm font-orbitron cursor-not-allowed" data-station="moon" disabled>
+                        BLOQUEADO 🔒
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="screenStation" class="w-full max-w-3xl bg-slate-900/90 border border-cyan-500/40 rounded-2xl p-4 sm:p-6 backdrop-blur-xl hidden flex flex-col">
+            <!-- Barra de navegación de Fase en la estación -->
+            <div class="flex justify-between items-center border-b border-slate-800 pb-4 mb-4">
+                <div>
+                    <span id="stationBadge" class="text-xs font-orbitron font-bold px-3 py-1 bg-cyan-950 text-cyan-400 rounded-full border border-cyan-500/30">ESTACIÓN SOL</span>
+                    <h2 id="phaseTitle" class="text-xl sm:text-2xl font-black font-orbitron text-white mt-1">Fase A: Desafío Físico</h2>
+                </div>
+                <div class="flex gap-2">
+                    <div id="stepDot1" class="w-3 h-3 rounded-full bg-cyan-400"></div>
+                    <div id="stepDot2" class="w-3 h-3 rounded-full bg-slate-700"></div>
+                    <div id="stepDot3" class="w-3 h-3 rounded-full bg-slate-700"></div>
+                </div>
+            </div>
+
+            <!-- CONTENEDOR DE CONTENIDO DE FASES -->
+            <div id="phaseContainer" class="flex-grow flex flex-col justify-center items-center min-h-[380px] p-2">
+                <!-- Se inyecta dinámicamente según la estación y fase activa -->
+            </div>
+
+            <!-- Footer de la estación con botones de acción -->
+            <div class="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center">
+                <button id="btnReturnMap" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-orbitron text-xs rounded-lg transition">
+                    ⬅ Volver al Mapa
+                </button>
+                <div id="phaseInstruction" class="text-xs text-cyan-300 italic font-semibold text-right max-w-xs sm:max-w-md">
+                    Instrucciones de fase...
+                </div>
+            </div>
+        </section>
+
+        <section id="screenVictory" class="w-full max-w-2xl bg-slate-900/90 border-2 border-amber-500/60 rounded-2xl p-6 backdrop-blur-xl hidden text-center glow-gold">
+            <div class="text-4xl mb-2 animate-bounce">🏆</div>
+            <h2 class="text-3xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-100 to-amber-500">¡MISIÓN CÓSMICA COMPLETADA!</h2>
+            <p class="text-slate-300 text-sm my-2">La patrulla ha explorado exitosamente todos los cuerpos celestes del circuito.</p>
+
+            <!-- Resumen de puntuaciones -->
+            <div class="grid grid-cols-3 gap-3 my-4 bg-slate-950 p-4 rounded-xl border border-amber-500/30">
+                <div>
+                    <span class="text-xs text-slate-400 uppercase font-orbitron block">Puntuación</span>
+                    <span id="finalScore" class="text-xl font-bold text-amber-400">0000</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 uppercase font-orbitron block">Tiempo Total</span>
+                    <span id="finalTime" class="text-xl font-bold text-cyan-400">00:00</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 uppercase font-orbitron block">Insignia</span>
+                    <span id="finalRank" class="text-xl font-bold text-emerald-400">Comandante</span>
+                </div>
+            </div>
+
+            <!-- Certificado Renderizado en Canvas -->
+            <div class="my-4 overflow-x-auto flex justify-center">
+                <canvas id="certificateCanvas" width="600" height="400" class="rounded-xl border border-amber-500/50 shadow-lg max-w-full h-auto"></canvas>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+                <button id="downloadCertBtn" class="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 font-orbitron font-bold text-slate-950 rounded-xl shadow-lg transition">
+                    ⬇️ DESCARGAR CERTIFICADO
+                </button>
+                <button id="restartGameBtn" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-orbitron font-bold rounded-xl transition">
+                    🔄 NUEVA MISIÓN
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER EDUCATIVO -->
+    <footer class="relative z-10 p-3 bg-slate-950/80 text-center text-xs text-slate-500 border-t border-slate-800">
+        El Safari Cósmico - Recorrido Pedagógico Digital de Astronomía Básica • Listo para GitHub Pages
+    </footer>
+
+    <!-- LÓGICA DE JUEGO Y SIMULACIONES -->
+    <script>
+        class AudioSynth {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playBeep(freq = 440, type = 'sine', duration = 0.1) {
+                if (this.muted) return;
+                this.init();
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {}
+            }
+
+            playSuccess() {
+                if (this.muted) return;
+                this.playBeep(523.25, 'sine', 0.1);
+                setTimeout(() => this.playBeep(659.25, 'sine', 0.1), 100);
+                setTimeout(() => this.playBeep(783.99, 'sine', 0.2), 200);
+            }
+
+            playError() {
+                if (this.muted) return;
+                this.playBeep(220, 'sawtooth', 0.15);
+                setTimeout(() => this.playBeep(180, 'sawtooth', 0.25), 150);
+            }
+        }
+
+        const audio = new AudioSynth();
+
+        const gameState = {
+            patrolName: "Patrulla Alfa",
+            avatar: "👨‍🚀",
+            score: 0,
+            startTime: 0,
+            timerInterval: null,
+            elapsedSeconds: 0,
+            unlockedStation: 1, // 1: Sol, 2: Tierra, 3: Luna
+            currentStation: 'sun',
+            currentPhase: 1, // 1: A, 2: B, 3: C
+            soundMuted: false
+        };
+
+        /* BANCO DE DATOS: TARJETAS EDUCATIVAS POR ESTACIÓN */
+        const cardsData = {
+            sun: [
+                { id: 's1', text: 'Emito mi propia luz y energía térmica por fusión', correct: true },
+                { id: 's2', text: 'Soy el centro de gravedad de nuestro sistema planetario', correct: true },
+                { id: 's3', text: 'Poseo una superficie rocosa con cráteres', correct: false },
+                { id: 's4', text: 'Mi luz tarda aprox. 8 minutos en llegar a la Tierra', correct: true },
+                { id: 's5', text: 'Tengo agua líquida en abundancia', correct: false }
+            ],
+            earth: [
+                { id: 'e1', text: 'Atmósfera compuesta principalmente por Nitrógeno y Oxígeno', correct: true },
+                { id: 'e2', text: 'Período de rotación de aproximadamente 24 horas', correct: true },
+                { id: 'e3', text: 'Atracción gravitatoria de superficie constante ($1G$)', correct: true },
+                { id: 'e4', text: 'Estrella brillante de gas incandescente', correct: false },
+                { id: 'e5', text: 'Carezco por completo de atmósfera', correct: false }
+            ],
+            moon: [
+                { id: 'm1', text: 'Gravedad reducida a $1/6$ respecto a la Tierra', correct: true },
+                { id: 'm2', text: 'Tardo aprox. 28 días en completar una órbita', correct: true },
+                { id: 'm3', text: 'No poseo luz propia, reflejo la luz del Sol', correct: true },
+                { id: 'm4', text: 'Centro de fusión nuclear que genera calor', correct: false },
+                { id: 'm5', text: 'Posee océanos de agua salada', correct: false }
+            ]
+        };
+
+        const starsCanvas = document.getElementById('starsCanvas');
+        const starsCtx = starsCanvas.getContext('2d');
+        let stars = [];
+
+        function resizeStarsCanvas() {
+            starsCanvas.width = window.innerWidth;
+            starsCanvas.height = window.innerHeight;
+            initStars();
+        }
+
+        function initStars() {
+            stars = [];
+            const count = Math.floor((starsCanvas.width * starsCanvas.height) / 3000);
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * starsCanvas.width,
+                    y: Math.random() * starsCanvas.height,
+                    radius: Math.random() * 1.5,
+                    alpha: Math.random(),
+                    speed: Math.random() * 0.02 + 0.005
+                });
+            }
+        }
+
+        function drawStars() {
+            starsCtx.clearRect(0, 0, starsCanvas.width, starsCanvas.height);
+            starsCtx.fillStyle = '#ffffff';
+            stars.forEach(star => {
+                star.alpha += star.speed;
+                if (star.alpha > 1 || star.alpha < 0) star.speed = -star.speed;
+                starsCtx.globalAlpha = Math.max(0, Math.min(1, star.alpha));
+                starsCtx.beginPath();
+                starsCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                starsCtx.fill();
+            });
+            requestAnimationFrame(drawStars);
+        }
+
+        window.addEventListener('resize', resizeStarsCanvas);
+        resizeStarsCanvas();
+        drawStars();
+
+        const screenIntro = document.getElementById('screenIntro');
+        const screenMap = document.getElementById('screenMap');
+        const screenStation = document.getElementById('screenStation');
+        const screenVictory = document.getElementById('screenVictory');
+
+        // Selección de Avatar
+        document.querySelectorAll('.avatar-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.avatar-btn').forEach(b => b.classList.remove('active-avatar', 'border-cyan-400', 'bg-cyan-950/50'));
+                const target = e.currentTarget;
+                target.classList.add('active-avatar', 'border-cyan-400', 'bg-cyan-950/50');
+                gameState.avatar = target.getAttribute('data-avatar');
+                audio.playBeep(600, 'sine', 0.05);
+            });
+        });
+
+        // Formulario de inicio
+        document.getElementById('introForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('patrolNameInput').value.trim();
+            if (name) gameState.patrolName = name;
+            document.getElementById('hudPatrol').innerText = gameState.patrolName;
+            document.getElementById('hudAvatar').innerText = gameState.avatar;
+            audio.playSuccess();
+            startTimer();
+            showScreen(screenMap);
+        });
+
+        // Botón silenciar audio
+        document.getElementById('soundToggle').addEventListener('click', () => {
+            gameState.soundMuted = !gameState.soundMuted;
+            audio.muted = gameState.soundMuted;
+            document.getElementById('soundToggle').innerText = gameState.soundMuted ? '🔇' : '🔊';
+        });
+
+        function showScreen(target) {
+            [screenIntro, screenMap, screenStation, screenVictory].forEach(s => s.classList.add('hidden'));
+            target.classList.remove('hidden');
+        }
+
+        function startTimer() {
+            gameState.startTime = Date.now();
+            gameState.timerInterval = setInterval(() => {
+                gameState.elapsedSeconds++;
+                const mins = String(Math.floor(gameState.elapsedSeconds / 60)).padStart(2, '0');
+                const secs = String(gameState.elapsedSeconds % 60).padStart(2, '0');
+                document.getElementById('hudTimer').innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function updateScore(points) {
+            gameState.score += points;
+            document.getElementById('hudScore').innerText = String(gameState.score).padStart(4, '0');
+        }
+
+        function updateMapUI() {
+            if (gameState.unlockedStation >= 2) {
+                const earthCard = document.getElementById('stationCard-earth');
+                earthCard.classList.remove('opacity-60');
+                earthCard.classList.add('glow-blue', 'border-blue-500/80');
+                earthCard.querySelector('.font-orbitron').classList.remove('text-slate-400');
+                earthCard.querySelector('.font-orbitron').classList.add('text-cyan-400');
+                earthCard.querySelector('.station-status').innerText = 'DISPONIBLE';
+                earthCard.querySelector('.station-status').className = 'station-status text-xs font-semibold px-3 py-1 rounded-full bg-blue-950 text-blue-300 border border-blue-500/40 mb-3';
+                const btn = earthCard.querySelector('.start-station-btn');
+                btn.disabled = false;
+                btn.className = 'start-station-btn w-full py-2 bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold rounded-lg text-sm font-orbitron transition';
+                btn.innerText = 'EXPLORAR ➔';
+            }
+
+            if (gameState.unlockedStation >= 3) {
+                const moonCard = document.getElementById('stationCard-moon');
+                moonCard.classList.remove('opacity-60');
+                moonCard.classList.add('glow-purple', 'border-purple-500/80');
+                moonCard.querySelector('.font-orbitron').classList.remove('text-slate-400');
+                moonCard.querySelector('.font-orbitron').classList.add('text-purple-300');
+                moonCard.querySelector('.station-status').innerText = 'DISPONIBLE';
+                moonCard.querySelector('.station-status').className = 'station-status text-xs font-semibold px-3 py-1 rounded-full bg-purple-950 text-purple-300 border border-purple-500/40 mb-3';
+                const btn = moonCard.querySelector('.start-station-btn');
+                btn.disabled = false;
+                btn.className = 'start-station-btn w-full py-2 bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold rounded-lg text-sm font-orbitron transition';
+                btn.innerText = 'EXPLORAR ➔';
+            }
+        }
+
+        document.querySelectorAll('.start-station-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const station = e.currentTarget.getAttribute('data-station');
+                gameState.currentStation = station;
+                gameState.currentPhase = 1;
+                loadStationPhase();
+                showScreen(screenStation);
+            });
+        });
+
+        document.getElementById('btnReturnMap').addEventListener('click', () => {
+            showScreen(screenMap);
+        });
+
+        function loadStationPhase() {
+            const container = document.getElementById('phaseContainer');
+            container.innerHTML = '';
+
+            // Actualizar indicadores visuales de fase
+            document.getElementById('stepDot1').className = `w-3 h-3 rounded-full ${gameState.currentPhase >= 1 ? 'bg-cyan-400' : 'bg-slate-700'}`;
+            document.getElementById('stepDot2').className = `w-3 h-3 rounded-full ${gameState.currentPhase >= 2 ? 'bg-cyan-400' : 'bg-slate-700'}`;
+            document.getElementById('stepDot3').className = `w-3 h-3 rounded-full ${gameState.currentPhase >= 3 ? 'bg-cyan-400' : 'bg-slate-700'}`;
+
+            const stationNames = { sun: 'ESTACIÓN SOL ☀️', earth: 'ESTACIÓN TIERRA 🌍', moon: 'ESTACIÓN LUNA 🌙' };
+            document.getElementById('stationBadge').innerText = stationNames[gameState.currentStation];
+
+            if (gameState.currentPhase === 1) {
+                document.getElementById('phaseTitle').innerText = "Fase A: Desafío Físico de Ritmo / Gravedad";
+                renderPhaseA(container);
+            } else if (gameState.currentPhase === 2) {
+                document.getElementById('phaseTitle').innerText = "Fase B: Laboratorio de Tarjetas Astronómicas";
+                renderPhaseB(container);
+            } else if (gameState.currentPhase === 3) {
+                document.getElementById('phaseTitle').innerText = "Fase C: Simulación del Fenómeno";
+                renderPhaseC(container);
+            }
+        }
+
+        let phaseAInterval = null;
+
+        function renderPhaseA(container) {
+            if (gameState.currentStation === 'sun') {
+                document.getElementById('phaseInstruction').innerText = "Mantén presionado o pulsa el botón a ritmo constante para simular la Rotación Terrestre.";
+                container.innerHTML = `
+                    <div class="text-center space-y-4 w-full max-w-md">
+                        <p class="text-sm text-slate-300">Presiona el botón <span class="text-amber-400 font-bold">GIRO CONSTANTE</span> en sincronía con el indicador verde para mantener la velocidad de la Tierra.</p>
+                        <div class="relative w-full h-8 bg-slate-950 rounded-full border border-slate-700 overflow-hidden">
+                            <div id="targetZone" class="absolute top-0 bottom-0 bg-emerald-500/30 border-x-2 border-emerald-400 w-1/4 left-3/8"></div>
+                            <div id="rhythmPointer" class="absolute top-0 bottom-0 w-3 bg-cyan-400 rounded-full shadow-lg shadow-cyan-500/80" style="left: 0%;"></div>
+                        </div>
+                        <div class="flex justify-between items-center text-xs font-orbitron">
+                            <span>Progreso de Rotación:</span>
+                            <span id="rotationProgress" class="text-cyan-400 font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800">
+                            <div id="rotationBar" class="h-full bg-gradient-to-r from-amber-500 to-emerald-400 w-0 transition-all"></div>
+                        </div>
+                        <button id="btnPulseRhythm" class="w-full py-4 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 rounded-xl font-orbitron font-bold text-slate-950 text-lg shadow-lg active:scale-95 transition">
+                            🔄 SINCRO ROTACIÓN (ESPACIO)
+                        </button>
+                    </div>
+                `;
+
+                let pointerPos = 0;
+                let pointerSpeed = 1.2;
+                let progress = 0;
+                const pointer = document.getElementById('rhythmPointer');
+                const progressBar = document.getElementById('rotationBar');
+                const progressText = document.getElementById('rotationProgress');
+
+                phaseAInterval = setInterval(() => {
+                    pointerPos += pointerSpeed;
+                    if (pointerPos >= 95 || pointerPos <= 0) pointerSpeed = -pointerSpeed;
+                    pointer.style.left = `${pointerPos}%`;
+                }, 20);
+
+                const handlePulse = () => {
+                    if (pointerPos >= 35 && pointerPos <= 60) {
+                        progress += 15;
+                        audio.playBeep(600, 'sine', 0.1);
+                    } else {
+                        progress = Math.max(0, progress - 5);
+                        audio.playError();
+                    }
+                    progress = Math.min(100, progress);
+                    progressBar.style.width = `${progress}%`;
+                    progressText.innerText = `${progress}%`;
+
+                    if (progress >= 100) {
+                        clearInterval(phaseAInterval);
+                        audio.playSuccess();
+                        updateScore(200);
+                        gameState.currentPhase = 2;
+                        setTimeout(loadStationPhase, 800);
+                    }
+                };
+
+                document.getElementById('btnPulseRhythm').addEventListener('click', handlePulse);
+                const spaceKeyHandler = (e) => {
+                    if (e.code === 'Space' && gameState.currentPhase === 1 && gameState.currentStation === 'sun') {
+                        e.preventDefault();
+                        handlePulse();
+                    }
+                };
+                window.onkeydown = spaceKeyHandler;
+
+            } else if (gameState.currentStation === 'earth') {
+                document.getElementById('phaseInstruction').innerText = "Ajusta la estabilidad de la aguja para mantener constante la fuerza de $1G$.";
+                container.innerHTML = `
+                    <div class="text-center space-y-4 w-full max-w-md">
+                        <p class="text-sm text-slate-300">Usa las flechas o botones para mantener la gravedad en el rango ideal de <span class="text-cyan-400 font-bold font-orbitron">1.0 G</span>.</p>
+                        <div class="relative w-full h-40 bg-slate-950 rounded-xl border border-blue-500/30 flex items-center justify-center overflow-hidden">
+                            <div class="text-5xl font-orbitron font-black text-cyan-400 text-glow" id="gValueText">1.0 G</div>
+                            <div id="gMeter" class="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 via-emerald-400 to-red-500"></div>
+                            <div id="gPointer" class="absolute bottom-0 w-2 h-8 bg-white shadow-md shadow-white transition-all" style="left: 50%;"></div>
+                        </div>
+                        <div class="flex justify-between items-center text-xs font-orbitron">
+                            <span>Tiempo en $1G$:</span>
+                            <span id="gTimer" class="text-emerald-400 font-bold">0.0s / 5.0s</span>
+                        </div>
+                        <div class="flex gap-4">
+                            <button id="btnGMinus" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold font-orbitron text-cyan-400 border border-cyan-500/30 text-lg">◀ REDUCIR</button>
+                            <button id="btnGPlus" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold font-orbitron text-cyan-400 border border-cyan-500/30 text-lg">AUMENTAR ▶</button>
+                        </div>
+                    </div>
+                `;
+
+                let gValue = 1.0;
+                let stableTime = 0;
+                const pointer = document.getElementById('gPointer');
+                const gText = document.getElementById('gValueText');
+                const timerText = document.getElementById('gTimer');
+
+                phaseAInterval = setInterval(() => {
+                    // Deriva aleatoria de gravedad
+                    gValue += (Math.random() - 0.5) * 0.15;
+                    gValue = Math.max(0.2, Math.min(1.8, gValue));
+                    
+                    const percent = ((gValue - 0.2) / 1.6) * 100;
+                    pointer.style.left = `${percent}%`;
+                    gText.innerText = `${gValue.toFixed(2)} G`;
+
+                    if (Math.abs(gValue - 1.0) < 0.15) {
+                        stableTime += 0.1;
+                        gText.className = "text-5xl font-orbitron font-black text-emerald-400 text-glow";
+                    } else {
+                        gText.className = "text-5xl font-orbitron font-black text-red-400 text-glow";
+                    }
+
+                    timerText.innerText = `${stableTime.toFixed(1)}s / 5.0s`;
+
+                    if (stableTime >= 5.0) {
+                        clearInterval(phaseAInterval);
+                        audio.playSuccess();
+                        updateScore(200);
+                        gameState.currentPhase = 2;
+                        setTimeout(loadStationPhase, 800);
+                    }
+                }, 100);
+
+                document.getElementById('btnGMinus').addEventListener('click', () => { gValue -= 0.1; audio.playBeep(400, 'sine', 0.05); });
+                document.getElementById('btnGPlus').addEventListener('click', () => { gValue += 0.1; audio.playBeep(500, 'sine', 0.05); });
+
+            } else if (gameState.currentStation === 'moon') {
+                document.getElementById('phaseInstruction').innerText = "Mantén el Rover flotando suavemente en la zona segura de gravedad $1/6G$.";
+                container.innerHTML = `
+                    <div class="text-center space-y-3 w-full max-w-md">
+                        <p class="text-sm text-slate-300">Toca el botón <span class="text-purple-300 font-bold">PROPULSAR</span> para mantener el módulo flotando en la franja verde ($1/6G$).</p>
+                        <div id="lunarBox" class="relative w-full h-48 bg-slate-950 rounded-xl border border-purple-500/30 overflow-hidden">
+                            <!-- Zona verde objetivo -->
+                            <div class="absolute top-12 bottom-12 left-0 right-0 bg-purple-900/30 border-y border-purple-400/50 flex items-center justify-end pr-2">
+                                <span class="text-[10px] font-orbitron text-purple-300">ZONA LUNAR $1/6G$</span>
+                            </div>
+                            <div id="rover" class="absolute left-10 text-3xl transition-all" style="bottom: 20px;">🛸</div>
+                        </div>
+                        <div class="flex justify-between items-center text-xs font-orbitron">
+                            <span>Aclimatación Lunar:</span>
+                            <span id="moonProgress" class="text-purple-300 font-bold">0%</span>
+                        </div>
+                        <button id="btnThrust" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl font-orbitron font-bold text-white text-lg shadow-lg active:scale-95 transition">
+                            🚀 PROPULSIÓN LUNAR
+                        </button>
+                    </div>
+                `;
+
+                let roverY = 20; // Bottompx
+                let velocity = 0;
+                const gravity = 0.35; // Gravedad suave
+                let progress = 0;
+
+                const rover = document.getElementById('rover');
+                const progText = document.getElementById('moonProgress');
+
+                phaseAInterval = setInterval(() => {
+                    velocity -= gravity;
+                    roverY += velocity;
+
+                    if (roverY < 0) { roverY = 0; velocity = 0; }
+                    if (roverY > 150) { roverY = 150; velocity = 0; }
+
+                    rover.style.bottom = `${roverY}px`;
+
+                    // Verificar si está en la zona verde (30px a 110px)
+                    if (roverY >= 30 && roverY <= 110) {
+                        progress += 1;
+                        audio.playBeep(700, 'sine', 0.02);
+                    } else {
+                        progress = Math.max(0, progress - 0.5);
+                    }
+
+                    progText.innerText = `${Math.min(100, Math.floor(progress))}%`;
+
+                    if (progress >= 100) {
+                        clearInterval(phaseAInterval);
+                        audio.playSuccess();
+                        updateScore(200);
+                        gameState.currentPhase = 2;
+                        setTimeout(loadStationPhase, 800);
+                    }
+                }, 40);
+
+                document.getElementById('btnThrust').addEventListener('click', () => {
+                    velocity += 3.5;
+                    audio.playBeep(300, 'triangle', 0.08);
+                });
+            }
+        }
+
+        function renderPhaseB(container) {
+            document.getElementById('phaseInstruction').innerText = "Selecciona las afirmaciones astronómicas correctas pertenecientes a esta estación.";
+            
+            const currentCards = cardsData[gameState.currentStation];
+            let htmlCards = currentCards.map(c => `
+                <button class="card-item w-full p-3 bg-slate-950 hover:bg-slate-800 border-2 border-slate-700 rounded-xl text-left text-xs sm:text-sm text-slate-200 transition flex items-center justify-between gap-2" data-id="${c.id}">
+                    <span>${c.text}</span>
+                    <span class="status-icon text-base">❓</span>
+                </button>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="w-full max-w-lg space-y-4">
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center gap-3">
+                        <span class="text-3xl">🕵️‍♂️</span>
+                        <p class="text-xs text-slate-300">Evalúa cada tarjeta del archivo cósmico. Selecciona únicamente los datos científicos verídicos sobre este cuerpo celeste.</p>
+                    </div>
+                    <div class="space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar p-1" id="cardsList">
+                        ${htmlCards}
+                    </div>
+                    <button id="btnValidateCards" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl font-orbitron font-bold text-white text-sm shadow-lg transition">
+                        ENVIAR INFORME AL GUARDIÁN ➔
+                    </button>
+                </div>
+            `;
+
+            const selectedStates = {};
+
+            document.querySelectorAll('.card-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const cardBtn = e.currentTarget;
+                    const id = cardBtn.getAttribute('data-id');
+                    selectedStates[id] = !selectedStates[id];
+
+                    if (selectedStates[id]) {
+                        cardBtn.classList.remove('border-slate-700', 'bg-slate-950');
+                        cardBtn.classList.add('border-cyan-400', 'bg-cyan-950/40');
+                        cardBtn.querySelector('.status-icon').innerText = '✅';
+                        audio.playBeep(500, 'sine', 0.05);
+                    } else {
+                        cardBtn.classList.remove('border-cyan-400', 'bg-cyan-950/40');
+                        cardBtn.classList.add('border-slate-700', 'bg-slate-950');
+                        cardBtn.querySelector('.status-icon').innerText = '❓';
+                        audio.playBeep(350, 'sine', 0.05);
+                    }
+                });
+            });
+
+            document.getElementById('btnValidateCards').addEventListener('click', () => {
+                let correctCount = 0;
+                let totalCorrectNeeded = currentCards.filter(c => c.correct).length;
+
+                currentCards.forEach(c => {
+                    const isSelected = !!selectedStates[c.id];
+                    if (isSelected === c.correct) {
+                        correctCount++;
+                    }
+                });
+
+                if (correctCount === currentCards.length) {
+                    audio.playSuccess();
+                    updateScore(300);
+                    gameState.currentPhase = 3;
+                    setTimeout(loadStationPhase, 600);
+                } else {
+                    audio.playError();
+                    alert("Revisa atentamente el informe. Algunas tarjetas no corresponden a las características astronómicas de esta estación.");
+                }
+            });
+        }
+
+        function renderPhaseC(container) {
+            if (gameState.currentStation === 'sun') {
+                document.getElementById('phaseInstruction').innerText = "Gira la Tierra para alinear la zona iluminada e identificar el límite entre Día y Noche.";
+                container.innerHTML = `
+                    <div class="flex flex-col items-center space-y-3 w-full max-w-md">
+                        <canvas id="simCanvas" width="340" height="200" class="bg-slate-950 rounded-xl border border-amber-500/40 shadow-inner"></canvas>
+                        <div class="flex items-center gap-3 w-full">
+                            <span class="text-xs font-orbitron text-amber-400">Rotación:</span>
+                            <input type="range" id="sunRotSlider" min="0" max="360" value="0" class="flex-grow accent-amber-500">
+                        </div>
+                        <div class="text-xs text-center text-slate-300">
+                            Estado actual en el observador: <span id="dayNightStatus" class="font-bold text-amber-300 font-orbitron">DÍA ☀️</span>
+                        </div>
+                        <button id="btnCompleteSunSim" class="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 font-orbitron font-bold text-slate-950 rounded-xl transition">
+                            REGISTRAR OBSERVACIÓN SOL ➔
+                        </button>
+                    </div>
+                `;
+
+                const canvas = document.getElementById('simCanvas');
+                const ctx = canvas.getContext('2d');
+                const slider = document.getElementById('sunRotSlider');
+                const statusText = document.getElementById('dayNightStatus');
+
+                function drawSunSim(angle) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Dibujar Sol en la izquierda
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(30, 100, 45, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Rayos de luz
+                    ctx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
+                    ctx.lineWidth = 2;
+                    for (let y = 30; y <= 170; y += 20) {
+                        ctx.beginPath();
+                        ctx.moveTo(75, y);
+                        ctx.lineTo(220, y);
+                        ctx.stroke();
+                    }
+
+                    // Dibujar Tierra en el centro (240, 100)
+                    const tx = 240, ty = 100, radius = 40;
+
+                    // Lado iluminado / Noche
+                    ctx.fillStyle = '#1e3a8a'; // Azul océano
+                    ctx.beginPath();
+                    ctx.arc(tx, ty, radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Sombra de noche (mitad derecha)
+                    ctx.fillStyle = 'rgba(5, 5, 20, 0.85)';
+                    ctx.beginPath();
+                    ctx.arc(tx, ty, radius, -Math.PI / 2, Math.PI / 2);
+                    ctx.fill();
+
+                    // Marca de ciudad/observador girando
+                    const rad = (angle * Math.PI) / 180;
+                    const mx = tx + Math.cos(rad) * radius;
+                    const my = ty + Math.sin(rad) * radius;
+
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(mx, my, 5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Determinar día/noche según posición de marca
+                    if (Math.cos(rad) < 0) {
+                        statusText.innerText = "DÍA ☀️ (Frente al Sol)";
+                        statusText.className = "font-bold text-amber-300 font-orbitron";
+                    } else {
+                        statusText.innerText = "NOCHE 🌙 (Sombra)";
+                        statusText.className = "font-bold text-indigo-300 font-orbitron";
+                    }
+                }
+
+                drawSunSim(0);
+                slider.addEventListener('input', (e) => {
+                    drawSunSim(e.target.value);
+                    audio.playBeep(300 + Number(e.target.value), 'sine', 0.01);
+                });
+
+                document.getElementById('btnCompleteSunSim').addEventListener('click', () => {
+                    completeStation('sun');
+                });
+
+            } else if (gameState.currentStation === 'earth') {
+                document.getElementById('phaseInstruction').innerText = "Alinea la posición del Sol para coincidir con el Huso Horario deseado.";
+                container.innerHTML = `
+                    <div class="flex flex-col items-center space-y-3 w-full max-w-md">
+                        <canvas id="simCanvas" width="340" height="200" class="bg-slate-950 rounded-xl border border-blue-500/40 shadow-inner"></canvas>
+                        <div class="flex justify-around w-full">
+                            <button id="btnZone1" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 rounded-lg text-xs font-orbitron">00:00 MIDNIGHT</button>
+                            <button id="btnZone2" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 rounded-lg text-xs font-orbitron">12:00 MEDIODÍA</button>
+                        </div>
+                        <div class="text-xs text-center text-slate-300">
+                            Hora Solar Detectada: <span id="hourText" class="font-bold text-cyan-400 font-orbitron">06:00 AM</span>
+                        </div>
+                        <button id="btnCompleteEarthSim" class="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 font-orbitron font-bold text-white rounded-xl transition">
+                            CONFIRMAR MAPEADO TERRESTRE ➔
+                        </button>
+                    </div>
+                `;
+
+                const canvas = document.getElementById('simCanvas');
+                const ctx = canvas.getContext('2d');
+                let targetHour = "12:00 PM";
+
+                function drawEarthSim(isNoon) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    // Planeta Tierra
+                    ctx.fillStyle = '#0284c7';
+                    ctx.beginPath();
+                    ctx.arc(170, 100, 50, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Continentes simples
+                    ctx.fillStyle = '#22c55e';
+                    ctx.beginPath();
+                    ctx.arc(150, 90, 18, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Posición Sol
+                    const sunX = isNoon ? 170 : 30;
+                    const sunY = isNoon ? 30 : 100;
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(sunX, sunY, 20, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    document.getElementById('hourText').innerText = isNoon ? "12:00 MEDIODÍA (Cénit)" : "00:00 MEDIANOCHE (Opuesto)";
+                }
+
+                drawEarthSim(true);
+
+                document.getElementById('btnZone1').addEventListener('click', () => { drawEarthSim(false); audio.playBeep(400, 'sine', 0.05); });
+                document.getElementById('btnZone2').addEventListener('click', () => { drawEarthSim(true); audio.playBeep(600, 'sine', 0.05); });
+
+                document.getElementById('btnCompleteEarthSim').addEventListener('click', () => {
+                    completeStation('earth');
+                });
+
+            } else if (gameState.currentStation === 'moon') {
+                document.getElementById('phaseInstruction').innerText = "Traslada la Luna alrededor de la Tierra e identifica las 4 fases principales.";
+                container.innerHTML = `
+                    <div class="flex flex-col items-center space-y-3 w-full max-w-md">
+                        <canvas id="simCanvas" width="340" height="200" class="bg-slate-950 rounded-xl border border-purple-500/40 shadow-inner"></canvas>
+                        <div class="flex items-center gap-3 w-full">
+                            <span class="text-xs font-orbitron text-purple-300">Órbita:</span>
+                            <input type="range" id="moonOrbitSlider" min="0" max="360" value="0" class="flex-grow accent-purple-500">
+                        </div>
+                        <div class="text-xs text-center text-slate-300">
+                            Fase Lunar Vista desde la Tierra: <span id="moonPhaseName" class="font-bold text-purple-300 font-orbitron">LUNA NUEVA 🌑</span>
+                        </div>
+                        <button id="btnCompleteMoonSim" class="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 font-orbitron font-bold text-white rounded-xl transition">
+                            FINALIZAR INVESTIGACIÓN LUNAR ➔
+                        </button>
+                    </div>
+                `;
+
+                const canvas = document.getElementById('simCanvas');
+                const ctx = canvas.getContext('2d');
+                const slider = document.getElementById('moonOrbitSlider');
+                const phaseName = document.getElementById('moonPhaseName');
+
+                function drawMoonSim(angle) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Sol a la izquierda
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(15, 100, 30, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Tierra en el centro (170, 100)
+                    ctx.fillStyle = '#0284c7';
+                    ctx.beginPath();
+                    ctx.arc(170, 100, 30, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Órbita
+                    const rad = (angle * Math.PI) / 180;
+                    const orbitRadius = 75;
+                    const mx = 170 + Math.cos(rad) * orbitRadius;
+                    const my = 100 + Math.sin(rad) * orbitRadius;
+
+                    ctx.strokeStyle = 'rgba(168, 85, 247, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(170, 100, orbitRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // Luna
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.beginPath();
+                    ctx.arc(mx, my, 12, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Clasificación de Fases
+                    const normAngle = (angle % 360 + 360) % 360;
+                    if (normAngle >= 315 || normAngle < 45) {
+                        phaseName.innerText = "LUNA NUEVA 🌑";
+                    } else if (normAngle >= 45 && normAngle < 135) {
+                        phaseName.innerText = "CUARTO CRECIENTE 🌓";
+                    } else if (normAngle >= 135 && normAngle < 225) {
+                        phaseName.innerText = "LUNA LLENA 🌕";
+                    } else {
+                        phaseName.innerText = "CUARTO MENGUANTE 🌗";
+                    }
+                }
+
+                drawMoonSim(0);
+                slider.addEventListener('input', (e) => {
+                    drawMoonSim(e.target.value);
+                    audio.playBeep(200 + Number(e.target.value), 'sine', 0.01);
+                });
+
+                document.getElementById('btnCompleteMoonSim').addEventListener('click', () => {
+                    completeStation('moon');
+                });
+            }
+        }
+
+        function completeStation(stationKey) {
+            audio.playSuccess();
+            updateScore(500);
+
+            if (stationKey === 'sun') {
+                gameState.unlockedStation = Math.max(gameState.unlockedStation, 2);
+                alert("¡Estación Sol Completada! Se ha desbloqueado la Estación Tierra.");
+                updateMapUI();
+                showScreen(screenMap);
+            } else if (stationKey === 'earth') {
+                gameState.unlockedStation = Math.max(gameState.unlockedStation, 3);
+                alert("¡Estación Tierra Completada! Se ha desbloqueado la Estación Luna.");
+                updateMapUI();
+                showScreen(screenMap);
+            } else if (stationKey === 'moon') {
+                clearInterval(gameState.timerInterval);
+                renderVictoryScreen();
+                showScreen(screenVictory);
+            }
+        }
+
+        function renderVictoryScreen() {
+            document.getElementById('finalScore').innerText = String(gameState.score).padStart(4, '0');
+            const mins = String(Math.floor(gameState.elapsedSeconds / 60)).padStart(2, '0');
+            const secs = String(gameState.elapsedSeconds % 60).padStart(2, '0');
+            document.getElementById('finalTime').innerText = `${mins}:${secs}`;
+
+            let rank = "Comandante Cósmico";
+            if (gameState.score >= 2500) rank = "Maestro de las Estrellas";
+            document.getElementById('finalRank').innerText = rank;
+
+            // Renderizar certificado en Canvas
+            const certCanvas = document.getElementById('certificateCanvas');
+            const ctx = certCanvas.getContext('2d');
+
+            // Fondo con degradado
+            const grad = ctx.createLinearGradient(0, 0, 600, 400);
+            grad.addColorStop(0, '#0a0f29');
+            grad.addColorStop(1, '#050515');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 600, 400);
+
+            // Borde dorado
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(15, 15, 570, 370);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(22, 22, 556, 356);
+
+            // Título
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 24px Orbitron, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('ACREDITACIÓN CÓSMICA OFICIAL', 300, 70);
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = '14px Rajdhani, sans-serif';
+            ctx.fillText('Se otorga la presente distinción de honor a la patrulla:', 300, 110);
+
+            // Nombre de la patrulla
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 28px Orbitron, sans-serif';
+            ctx.fillText(`${gameState.avatar} ${gameState.patrolName}`, 300, 160);
+
+            // Texto descriptivo
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '14px Rajdhani, sans-serif';
+            ctx.fillText('Por haber completado exitosamente el recorrido de exploración astronómica,', 300, 200);
+            ctx.fillText('superando las pruebas físicas, de clasificación y simulación en el Sol, Tierra y Luna.', 300, 220);
+
+            // Métricas
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 16px Orbitron, sans-serif';
+            ctx.fillText(`Puntuación: ${gameState.score} Pts | Rango: ${rank}`, 300, 270);
+
+            // Fecha y Sello
+            const dateStr = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+            ctx.fillStyle = '#64748b';
+            ctx.font = '12px Orbitron, sans-serif';
+            ctx.fillText(`Expedido el ${dateStr} • Centro de Mando Cósmico`, 300, 330);
+
+            // Sello SVG / Canvas
+            ctx.strokeStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(520, 310, 30, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 10px Orbitron, sans-serif';
+            ctx.fillText('OFICIAL', 520, 314);
+        }
+
+        // Descarga del certificado
+        document.getElementById('downloadCertBtn').addEventListener('click', () => {
+            const certCanvas = document.getElementById('certificateCanvas');
+            const image = certCanvas.toDataURL("image/png");
+            const link = document.createElement('a');
+            link.download = `Certificado_Safari_Cosmico_${gameState.patrolName.replace(/\s+/g, '_')}.png`;
+            link.href = image;
+            link.click();
+        });
+
+        // Reiniciar Juego
+        document.getElementById('restartGameBtn').addEventListener('click', () => {
+            window.location.reload();
+        });
+    </script>
+</body>
+</html>
